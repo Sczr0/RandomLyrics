@@ -3,7 +3,7 @@
 
 Linux另外需要rsync模块
 
-可使用sudo apt-get install rsync -y / pacman -S rsync安装
+可使用sudo apt-get install rsync -y (Ubuntu、Debian) / pacman -S rsync (Arch Linux) 安装
 
 
 # 指令速查表
