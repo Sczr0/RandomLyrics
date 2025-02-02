@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { promisify } from 'util';
 import { setTimeout } from 'timers/promises';
 import fse from 'fs-extra';
 import common from '../../lib/common/common.js';
+import { glob } from 'glob'; 
 
 // ================= 核心配置 =================
 const CONFIG_PATH = path.join(process.cwd(), 'resources/lyrics/config.json')
@@ -260,30 +260,43 @@ export class LyricsPlugin extends plugin {
         
         try {
             await fse.ensureDir(tempDir)
-            this.logger.mark(`🆕 创建临时沙盒: ${tempDir}`)
-
+            this.logger.mark(`🆕 创建临时沙盒: ${path.basename(tempDir)}`) // 简化路径显示
+    
             const isExist = await fse.pathExists(path.join(targetDir, '.git'))
             if (isExist) {
-                this.logger.mark('⏬ 进入更新模式...')
-                await execa('git', ['-C', targetDir, 'pull', '--rebase'], { timeout: 60000 })
+                this.logger.mark('⏬ 仓库存在，执行快速更新...')
+                await execa('git', ['-C', targetDir, 'pull', '--rebase'], { 
+                    timeout: 60000,
+                    stdio: 'inherit' // 隐藏git原生输出
+                })
             } else {
-                this.logger.mark('⏬ 开始克隆仓库...')
-                await execa('git', ['clone', '--depth=1', repoUrl, tempDir], { timeout: 120000 })
+                this.logger.mark(`⏬ 初始克隆仓库: ${repoName}`)
+                await execa('git', ['clone', '--depth=1', repoUrl, tempDir], { 
+                    timeout: 120000,
+                    stdio: 'pipe' // 抑制控制台输出
+                })
             }
-
-            this.logger.mark('🔄 开始同步文件...')
-            await this.#syncFiles({
+    
+            this.logger.mark('🔄 开始智能同步...')
+            const fileCount = await this.#syncFiles({  // 获取文件计数
                 src: isExist ? targetDir : tempDir,
                 dest: targetDir,
                 patterns: ['**/*.txt', '!**/.git']
             })
-
-            const { stdout: hash } = await execa('git', ['rev-parse', 'HEAD'], { cwd: targetDir })
-            this.logger.mark(`✅ 同步完成！最新commit: ${hash.slice(0,7)}`)
-
+    
+            const { stdout: hash } = await execa('git', ['rev-parse', 'HEAD'], { 
+                cwd: targetDir,
+                stdio: ['ignore', 'pipe', 'ignore'] // 隐藏错误流
+            })
+            
+            this.logger.mark([
+                `✅ 同步完成！`,
+                `📦 仓库版本: ${hash.slice(0,7)}`,
+            ].join('\n'))
+    
         } finally {
             await this.#nukeDirectory(tempDir).catch(err => 
-                this.logger.error(`💥 临时目录清理异常: ${err.message}`)
+                this.logger.warn(`⚠️ 清理临时目录遇到小问题: ${err.message}`) // 降级为警告
             )
         }
     }
@@ -302,23 +315,31 @@ export class LyricsPlugin extends plugin {
             })
         } else {
             try {
-                await execa('which', ['rsync'])
-            } catch {
-                throw new Error('请先安装rsync：sudo apt-get install rsync')
+                // 1. 清理目标目录
+                await fse.emptyDir(dest)
+                
+                // 2. 匹配文件模式
+                const files = await glob(patterns, { 
+                    cwd: src,
+                    nodir: true,
+                    ignore: ['**/.git/**']
+                })
+                
+                // 3. 并行复制文件
+                await Promise.all(files.map(async file => {
+                    const srcPath = path.join(src, file)
+                    const destPath = path.join(dest, file)
+                    await fse.copy(srcPath, destPath)
+                }))
+                
+            } catch (err) {
+                this.logger.error(`💥 同步失败详情:
+                错误信息: ${err.message}
+                堆栈追踪: ${err.stack}
+                系统信息: ${process.platform}/${process.arch}
+                Node版本: ${process.version}`)
+                throw err
             }
-
-            const safeSrc = `"${src}/"`  // 处理带空格路径
-            const safeDest = `"${dest}"`
-            const filter = patterns.map(p => `--include=${p}`).join(' ')
-
-            await execa('rsync', [
-            '-rptgoD', '--delete',
-            ...patterns.map(p => `--include=${p}`),
-            '--exclude=*',
-            safeSrc, safeDest
-            ], {
-                shell: '/bin/bash'
-            })
         }
     }
 
