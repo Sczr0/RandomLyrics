@@ -1,11 +1,6 @@
 # RandomLyrics
 基于Yunzai的随机歌词js脚本
 
-Linux另外需要rsync模块
-
-可使用sudo apt-get install rsync -y (Ubuntu、Debian) / pacman -S rsync (Arch Linux) 安装
-
-
 # 指令速查表
 
 ## 🎲 歌词交互
