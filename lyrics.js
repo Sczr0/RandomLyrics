@@ -25,8 +25,8 @@ const DEFAULT_CONFIG = {
 export class LyricsPlugin extends plugin {
     constructor() {
         super({
-            name: '高性能歌词插件',
-            desc: '🚀 超快速歌词抽选与智能仓库管理',
+            name: '随机歌词',
+            desc: '随机歌词与仓库管理',
             event: 'message',
             priority: 0,
             rule: [
