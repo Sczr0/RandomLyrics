@@ -1,6 +1,8 @@
 # RandomLyrics
 基于Yunzai的随机歌词js脚本
 
+需要提前Yunzai的文件夹resources下创建lyrics文件夹
+
 # 指令速查表
 
 ## 🎲 歌词交互
