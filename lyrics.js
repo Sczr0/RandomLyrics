@@ -381,7 +381,7 @@ export class LyricsPlugin extends plugin {
         
         try {
             if (fs.existsSync(libPath)) {
-                return await e.reply('🎶 这个歌词库已经存在啦，换个小众歌名试试？')
+                return await e.reply('🎶 这个歌词库已经存在啦，换个名字试试？')
             }
             
             await fs.promises.mkdir(libPath, { recursive: true })
@@ -389,7 +389,7 @@ export class LyricsPlugin extends plugin {
             this.#saveConfig(this.config)
             await e.reply(`🎉 新建歌词库成功！快用【获取歌词 ${libName} 仓库名】添加内容吧～`)
         } catch (err) {
-            await e.reply(`💥 创建失败：${err.message}，可能被外星人干扰了！`)
+            await e.reply(`💥 创建失败：${err.message}`)
         }
     }
 
@@ -416,12 +416,12 @@ export class LyricsPlugin extends plugin {
             return await e.reply(`🌌 没找到【${libName}】库，先创建它吧～`)
         }
         if (!this.config.repositories[repoName]) {
-            return await e.reply(`🚧 仓库【${repoName}】未登记，先添加它吧～`)
+            return await e.reply(`🚧 没找到【${repoName}】仓库，先创建它吧～`)
         }
 
         try {
             await this.#syncRepo(this.config.libraries[libName], this.config.repositories[repoName])
-            await e.reply(`🎵 【${libName}】同步完成！新歌词正在派送中...`)
+            await e.reply(`🎵 【${libName}】同步完成！`)
         } catch (err) {
             await e.reply(`💔 同步失败：${err.message}`)
         }
@@ -431,7 +431,7 @@ export class LyricsPlugin extends plugin {
         const libs = Object.keys(this.config.libraries)
         await e.reply(libs.length 
             ? `📚 现有歌词库：\n${libs.join('\n')}` 
-            : '📭 空空如也～快用【新建歌词库】召唤新伙伴吧！'
+            : '📭 空空如也～请【新建歌词库】吧！'
         )
     }
 
@@ -443,13 +443,13 @@ export class LyricsPlugin extends plugin {
                     `✨ ${name}\n   ➤ ${url.replace(/\.git$/, '')}`
                 ).join('\n')
               }\n\n使用【获取歌词 库名 仓库名】同步吧～` 
-            : '☁️ 云端仓库空空的～快添加新星球！'
+            : '☁️ 好像没有云端仓库，请【添加歌词仓库】吧！'
         )
     }
 
     async removeLib(e) {
         const libName = e.msg.split(' ')[1]
-        if (!libName) return await e.reply('🎵 要告诉人家删除哪个库嘛～')
+        if (!libName) return await e.reply('🎵 要告诉删除哪个库呢～')
         
         if (!this.config.libraries[libName]) {
             return await e.reply('🌈 这个歌词库早就消失啦～')
@@ -459,7 +459,7 @@ export class LyricsPlugin extends plugin {
             await this.#safeRemoveDir(this.config.libraries[libName])
             delete this.config.libraries[libName]
             this.#saveConfig(this.config)
-            await e.reply(`🗑️ 【${libName}】已永久删除，像从未存在过～`)
+            await e.reply(`🗑️ 【${libName}】已永久删除，真的很久～`)
         } catch (err) {
             await e.reply(`💣 删除失败：${err.message}`)
         }
